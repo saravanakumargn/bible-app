@@ -22,16 +22,16 @@ export default function TabTwoScreen() {
   useEffect(() => {
     async function getWelcomeMessage() {
       const response = await getWarmWelcome("Give any powerful Quote from the bible to share with friends");
-      setShareMessage(response.choices[0].message.content); 
+      setShareMessage(response.choices[0].message.content);
     }
     getWelcomeMessage();
 
   }, []);
 
   useEffect(() => {
-  // const existingMessages = storage.getString('messages');
-  // console.log('existingMessages',existingMessages); 
-  setMessages(existingMessages ? JSON.parse(existingMessages) : []);
+    // const existingMessages = storage.getString('messages');
+    // console.log('existingMessages',existingMessages); 
+    setMessages(existingMessages ? JSON.parse(existingMessages) : []);
   }, [])
 
 
@@ -41,24 +41,24 @@ export default function TabTwoScreen() {
       <ScrollView>
         <Card padding-s3 marginB-s3 backgroundColor={Colors.green70}>
 
-      <ThemedText>
-        {shareMessage}
-      </ThemedText>
+          <ThemedText>
+            {shareMessage}
+          </ThemedText>
         </Card>
 
-      {messages?.map((message, index) => (
-        <Card key={message} style={{
-          padding: 16,
-          marginBottom: 16,
-          // borderBottomWidth: 1,
-          // borderBottomColor: '#e0e0e0',
-        }}>
-          <ThemedText>
-            {message}
-          </ThemedText>
-          
+        {messages?.map((message, index) => (
+          <Card key={message} style={{
+            padding: 16,
+            marginBottom: 16,
+            // borderBottomWidth: 1,
+            // borderBottomColor: '#e0e0e0',
+          }}>
+            <ThemedText>
+              {message}
+            </ThemedText>
+
           </Card>
-      ))}
+        ))}
       </ScrollView>
     </View>
   );
