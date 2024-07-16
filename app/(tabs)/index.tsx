@@ -1,70 +1,191 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { Image, StyleSheet, Platform, ScrollView } from 'react-native';
 
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Button, Card, Colors, SegmentedControl, Text, TextField, View } from 'react-native-ui-lib';
+import { useCallback, useEffect, useState } from 'react';
+import { ChatHistory, getChatCompletions, getWarmWelcome } from '../utils/ChatUtils';
+import { storage } from '../utils/storage';
+import { useLocalSearchParams } from 'expo-router';
+
+const ChatRole = [
+  'Scholar',
+  'Friend',
+  'Guide',
+  'Therapist',
+]
+
+const ContentLength = [
+  'Short',
+  'Medium',
+  'Long',
+]
+
 
 export default function HomeScreen() {
+
+  const { exploreTheme } = useLocalSearchParams<{ exploreTheme?: string }>();
+
+  const [userChatMessage, setUserChatMessage] = useState<string>('');
+  // const [chatResponse, setChatResponse] = useState<string>('');
+  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
+  const [chatRole, setChatRole] = useState<string>();
+  const [contentLength, setContentLength] = useState<string>('Short');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [welcomeMessage, setWelcomeMessage] = useState<string>('');
+
+  useEffect(() => {
+    async function getWelcomeMessage() {
+      const response = await getWarmWelcome("Please provide a welcoming message for first-time users of our app in very short.");
+      setWelcomeMessage(response.choices[0].message.content);
+    }
+    getWelcomeMessage();
+
+  }, []);
+
+  const onChangeText = useCallback((text: string) => {
+    setUserChatMessage(text);
+  }, []);
+
+  const onChatCall = useCallback(async (message: string) => {
+    setIsLoading(true);
+    try {
+
+      setUserChatMessage('');
+      const chatRequest = [
+        ...chatHistory,
+        { role: 'user', content: message },
+      ]
+      const chatResponse = await getChatCompletions(chatRequest, contentLength, chatRole);
+      setChatHistory([
+        ...chatHistory,
+        { role: 'user', content: message },
+        { role: 'assistant', content: chatResponse.choices[0].message.content },
+      ]);
+      setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+    }
+  }
+    , [chatHistory, userChatMessage]);
+
+  const onChatSubmit = useCallback(async () => {
+    onChatCall(userChatMessage);
+  }
+    , [chatHistory, userChatMessage]);
+
+  useEffect(() => {
+    if (exploreTheme) {
+      onChatCall(exploreTheme);
+    }
+
+  }, [exploreTheme]);
+
+  const onSaveMessage = useCallback((message) => () => {
+    console.log('Save message', message);
+    // store on mmkv save in array
+    const existingMessages = storage.getString('messages');
+    let messagesArray = existingMessages ? JSON.parse(existingMessages) : [];
+    messagesArray.push(message);
+    storage.set('messages', JSON.stringify(messagesArray));
+  }
+    , []);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <View flex margin-s3>
+      <ScrollView style={{
+        flex: 1,
+      }}>
+        <SegmentedControl segments={[
+          {
+            label: 'Scholar',
+          },
+          {
+            label: 'Friend',
+          },
+          {
+            label: 'Guide',
+          },
+          {
+            label: 'Therapist',
+          }
+        ]}
+          onChangeIndex={(index) => {
+            const role = ChatRole[index];
+            setChatRole(role);
+          }}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <SegmentedControl segments={[
+          {
+            label: 'Short',
+          },
+          {
+            label: 'Medium',
+          },
+          {
+            label: 'Long',
+          }
+        ]}
+          onChangeIndex={(index) => {
+            const contentLen = ContentLength[index];
+            setContentLength(contentLen);
+          }}
+        />
+        <View flex>
+          <Card padding-s2 marginV-s3>
+            <ThemedText>{welcomeMessage}</ThemedText>
+          </Card>
+          {chatHistory.map((chat, index) => (
+            <View key={index} marginB-s2 style={[
+              styles.container
+            ]}>
+              {chat.role === 'user' && (
+                <View style={styles.userMessage}>
+                  <ThemedText>{chat.content}</ThemedText>
+                </View>
+              )}
+              {chat.role === 'assistant' && (
+                <View style={styles.systemMessage}>
+                  <ThemedText>{chat.content}</ThemedText>
+                  <View left>
+                    <Button label='Save' onPress={onSaveMessage(chat.content)} />
+                  </View>
+                </View>
+              )}
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+      <View row>
+        <View flex>
+          <TextField value={userChatMessage}
+            placeholder={'Placeholder'}
+            floatingPlaceholder
+            onChangeText={onChangeText}
+          />
+        </View>
+        <Button label='Chat' onPress={onChatSubmit} disabled={isLoading} />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    // backgroundColor: '#fff',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  userMessage: {
+    backgroundColor: Colors.green70,
+    padding: 10,
+    borderRadius: 10,
+    alignSelf: 'flex-end',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  systemMessage: {
+    backgroundColor: Colors.red80,
+    padding: 10,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
   },
 });

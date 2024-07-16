@@ -11,9 +11,8 @@ import { useEffect, useState } from 'react';
 import { storage } from '../utils/storage';
 import { useMMKVString } from 'react-native-mmkv';
 import { getWarmWelcome } from '../utils/ChatUtils';
-import { router } from 'expo-router';
 
-export default function TabExploreScreen() {
+export default function TabTwoScreen() {
 
   const [messages, setMessages] = useState([]);
   const [existingMessages] = useMMKVString("messages")
@@ -46,56 +45,20 @@ export default function TabExploreScreen() {
         {shareMessage}
       </ThemedText>
         </Card>
-        <Card padding-s3 onPress={function() {
-          router.push({
-            pathname: '/',
-            params: {
-              exploreTheme: 'Love & Relationships'
-            }
-          });
-        }}>
-        <ThemedText>
-          Love & Relationships
-          </ThemedText>
-        </Card>
-        <Card padding-s3>
-        <ThemedText onPress={function() {
-          router.push({
-            pathname: '/',
-            params: {
-              exploreTheme: 'What Would Jeasus Do'
-            }
-          });
-        }}>
-          What Would Jeasus Do
-          </ThemedText>
-        </Card>
-        <Card padding-s3>
-        <ThemedText onPress={function() {
-          router.push({
-            pathname: '/',
-            params: {
-              exploreTheme: 'Faith & Doubt'
-            }
-          });
-        }}>
-          Faith & Doubt
-          </ThemedText>
-        </Card>
 
-        <Card padding-s3 onPress={function() {
-          router.push({
-            pathname: '/',
-            params: {
-              exploreTheme: 'quiz me'
-            }
-          });
+      {messages?.map((message, index) => (
+        <Card key={message} style={{
+          padding: 16,
+          marginBottom: 16,
+          // borderBottomWidth: 1,
+          // borderBottomColor: '#e0e0e0',
         }}>
-        <ThemedText>
-          Quiz Me
+          <ThemedText>
+            {message}
           </ThemedText>
-        </Card>
-
+          
+          </Card>
+      ))}
       </ScrollView>
     </View>
   );
